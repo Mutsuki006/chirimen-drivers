@@ -37,6 +37,11 @@ await motor.init();
 await motor.vibrate(100, 200);
 ```
 
+## 注意事項
+
+`playEffect()`、`vibrate()`、`stop()` は並行して呼び出さないでください。
+各メソッドの完了を `await` してから、次の操作を実行してください。
+
 ## API
 
 ### `constructor(i2cPort, slaveAddress, overdriveClamp)`

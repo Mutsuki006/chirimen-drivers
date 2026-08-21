@@ -68,55 +68,53 @@ class DRV2605L {
    * Initialize DRV2605L for an ERM vibration motor.
    */
   async init() {
-    if (this.i2cSlave) {
-      return;
-    }
-
     if (this.initPromise) {
       await this.initPromise;
       return;
     }
 
+    if (this.i2cSlave) {
+      return;
+    }
+
     this.initPromise = (async () => {
-      try {
-        this.i2cSlave = await this.i2cPort.open(this.slaveAddress);
+      const slave = await this.i2cPort.open(this.slaveAddress);
 
-        // Internal trigger mode
-        await this.i2cSlave.write8(REG_MODE, MODE_INTERNAL_TRIGGER);
+      // Internal trigger mode
+      await slave.write8(REG_MODE, MODE_INTERNAL_TRIGGER);
 
-        // Disable RTP input
-        await this.i2cSlave.write8(REG_RTP_INPUT, 0x00);
+      // Disable RTP input
+      await slave.write8(REG_RTP_INPUT, 0x00);
 
-        // Select ERM effect library
-        await this.i2cSlave.write8(REG_LIBRARY, LIBRARY_ERM_A);
+      // Select ERM effect library
+      await slave.write8(REG_LIBRARY, LIBRARY_ERM_A);
 
-        // Clear waveform sequence
-        await this.i2cSlave.write8(REG_WAVESEQ1, 0x00);
-        await this.i2cSlave.write8(REG_WAVESEQ2, 0x00);
+      // Clear waveform sequence
+      await slave.write8(REG_WAVESEQ1, 0x00);
+      await slave.write8(REG_WAVESEQ2, 0x00);
 
-        // Reset timing offsets
-        await this.i2cSlave.write8(REG_OVERDRIVE_TIME_OFFSET, 0x00);
-        await this.i2cSlave.write8(REG_SUSTAIN_TIME_OFFSET_POS, 0x00);
-        await this.i2cSlave.write8(REG_SUSTAIN_TIME_OFFSET_NEG, 0x00);
-        await this.i2cSlave.write8(REG_BRAKE_TIME_OFFSET, 0x00);
+      // Reset timing offsets
+      await slave.write8(REG_OVERDRIVE_TIME_OFFSET, 0x00);
+      await slave.write8(REG_SUSTAIN_TIME_OFFSET_POS, 0x00);
+      await slave.write8(REG_SUSTAIN_TIME_OFFSET_NEG, 0x00);
+      await slave.write8(REG_BRAKE_TIME_OFFSET, 0x00);
 
-        // Set the full-scale voltage reference for ERM open-loop operation.
-        // The default value 0x8C corresponds to approximately 3.02 V.
-        await this.i2cSlave.write8(REG_OVERDRIVE_CLAMP, this.overdriveClamp);
+      // Set the full-scale voltage reference for ERM open-loop operation.
+      // The default value 0x8C corresponds to approximately 3.02 V.
+      await slave.write8(REG_OVERDRIVE_CLAMP, this.overdriveClamp);
 
-        // Select ERM mode
-        let feedback = await this.i2cSlave.read8(REG_FEEDBACK_CONTROL);
-        feedback &= 0x7f;
-        await this.i2cSlave.write8(REG_FEEDBACK_CONTROL, feedback);
+      // Select ERM mode
+      let feedback = await slave.read8(REG_FEEDBACK_CONTROL);
+      feedback &= 0x7f;
+      await slave.write8(REG_FEEDBACK_CONTROL, feedback);
 
-        // ERM open-loop mode
-        let control3 = await this.i2cSlave.read8(REG_CONTROL3);
-        control3 |= 0x20;
-        await this.i2cSlave.write8(REG_CONTROL3, control3);
-      } catch (error) {
-        this.i2cSlave = null;
-        throw error;
-      }
+      // ERM open-loop mode
+      let control3 = await slave.read8(REG_CONTROL3);
+      control3 |= 0x20;
+      await slave.write8(REG_CONTROL3, control3);
+
+      // Make the device available only after initialization has completed.
+      this.i2cSlave = slave;
     })();
 
     try {
